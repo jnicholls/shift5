@@ -1,0 +1,17 @@
+[workspace]
+resolver = "3"
+members = ["generator", "parser", "protocol", "server"]
+
+[workspace.package]
+edition = "2024"
+
+[workspace.dependencies]
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+derive_builder = "0.20"
+parser = { path = "parser" }
+protocol = { path = "protocol" }
+rand = "0.10"
+tokio = { version = "1", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
