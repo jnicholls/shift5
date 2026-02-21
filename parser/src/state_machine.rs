@@ -168,7 +168,7 @@ impl<'a> ParserInput<'a> {
                         address,
                         destination,
                         data_length,
-                        data: Vec::new(),
+                        data: Vec::with_capacity(data_length as usize),
                         remaining: data_length as usize,
                     });
                     (true, None)
