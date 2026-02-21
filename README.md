@@ -184,3 +184,6 @@ Full report with plots and statistics is written to `target/criterion/report/ind
 
 ![StateMachineParser benchmark report (MacBook Pro M2 Pro 2023, 16 GB RAM)](benchmark.png)
 
+After [commit 2921d40](https://github.com/jnicholls/shift5/commit/2921d40cd38f7ba2df787d6938f98d20b2d15447)'s performance improvement, the benchmark reports **~29.3% throughput improvement** at **4.675 million messages per second**:
+
+![StateMachineParser benchmark report (MacBook Pro M2 Pro 2023, 16 GB RAM)](benchmark2.png)
