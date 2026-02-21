@@ -159,3 +159,28 @@ INFO server: disconnected addr=127.0.0.1:54321
 ```
 
 (Exact format depends on `tracing` subscriber configuration.)
+
+## Benchmarks
+
+The parser crate includes a [Criterion](https://github.com/bheisler/criterion.rs) benchmark that serializes 1000 messages into a single buffer, then repeatedly parses that buffer with `StateMachineParser` to measure throughput.
+
+Run the benchmark:
+
+```bash
+cargo bench -p parser
+```
+
+Sample output (MacBook Pro M2 Pro (2023), 16 GB RAM):
+
+```
+StateMachineParser/parse_1000_messages
+                        time:   [272.63 µs 273.05 µs 273.55 µs]
+                        thrpt:  [3.6556 Melem/s 3.6623 Melem/s 3.6680 Melem/s]
+```
+
+Throughput is reported in **Melem/s** (million elements per second); each “element” is 1000 messages, so ~3.66 Melem/s corresponds to about **3.66 million messages per second** for this workload.
+
+Full report with plots and statistics is written to `target/criterion/report/index.html`. Example report on the same machine:
+
+![StateMachineParser benchmark report (MacBook Pro M2 Pro 2023, 16 GB RAM)](benchmark.png)
+
