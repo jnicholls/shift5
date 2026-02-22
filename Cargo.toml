@@ -8,6 +8,7 @@ edition = "2024"
 [workspace.dependencies]
 anyhow = "1"
 clap = { version = "4", features = ["derive"] }
+dashmap = "6"
 derive_builder = "0.20"
 parser = { path = "parser" }
 protocol = { path = "protocol" }

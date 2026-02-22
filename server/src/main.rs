@@ -1,14 +1,13 @@
 //! TCP server that accepts connections and parses the binary message stream.
 
-use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
 use clap::Parser;
+use dashmap::DashMap;
 use parser::{ParseError, ParseResult, Parser as _, StateMachineParser};
 use tokio::io::AsyncReadExt;
 use tokio::net::{TcpListener, TcpStream};
-use tokio::sync::Mutex;
 use tokio::time::{self, Duration};
 use tracing::{debug, info, warn};
 use tracing_subscriber::EnvFilter;
@@ -58,18 +57,16 @@ async fn main() -> anyhow::Result<()> {
     let listener = TcpListener::bind(&args.bind).await?;
     info!(bind = %args.bind, "listening");
 
-    let stats = Arc::new(Mutex::new(HashMap::<SocketAddr, ClientStats>::new()));
+    let stats = Arc::new(DashMap::<SocketAddr, ClientStats>::new());
     let stats_interval = args.stats_interval;
+
+    // If not in debug mode, spawn a task to periodically print the stats table.
     if !args.debug {
         let stats = Arc::clone(&stats);
         tokio::spawn(async move {
             let mut interval = time::interval(Duration::from_secs(stats_interval));
             loop {
                 interval.tick().await;
-                let guard = stats.lock().await;
-                if guard.is_empty() {
-                    continue;
-                }
 
                 // clear screen and home cursor
                 print!("\x1b[2J\x1b[H");
@@ -82,7 +79,8 @@ async fn main() -> anyhow::Result<()> {
                 println!("{}", "-".repeat(74));
 
                 // print stats for each client
-                for (addr, s) in guard.iter() {
+                for r in stats.iter() {
+                    let (addr, s) = (r.key(), r.value());
                     let conn = if s.connected { "X" } else { "" };
                     println!(
                         "{:<22} | {:>10} | {:>8} | {:>12} | {:>10}",
@@ -92,12 +90,13 @@ async fn main() -> anyhow::Result<()> {
             }
         });
     }
+
+    // Accept connections and spawn a task to handle each client.
     loop {
         let (stream, addr) = listener.accept().await?;
         info!(%addr, "accepted connection");
         {
-            let mut guard = stats.lock().await;
-            guard.entry(addr).or_default();
+            stats.entry(addr).or_default();
         }
 
         tokio::spawn(handle_client(args.debug, stream, addr, stats.clone()));
@@ -108,7 +107,7 @@ async fn handle_client(
     debug: bool,
     stream: TcpStream,
     addr: SocketAddr,
-    stats: Arc<Mutex<HashMap<SocketAddr, ClientStats>>>,
+    stats: Arc<DashMap<SocketAddr, ClientStats>>,
 ) {
     let (mut reader, _writer) = stream.into_split();
     let mut buf = [0u8; 4096];
@@ -124,8 +123,7 @@ async fn handle_client(
                 let chunk = &buf[..n];
                 let results = parser.feed(chunk);
 
-                let mut guard = stats.lock().await;
-                if let Some(s) = guard.get_mut(&addr) {
+                if let Some(mut s) = stats.get_mut(&addr) {
                     s.bytes += n;
 
                     for r in results {
@@ -173,8 +171,7 @@ async fn handle_client(
     }
 
     {
-        let mut guard = stats.lock().await;
-        if let Some(s) = guard.get_mut(&addr) {
+        if let Some(mut s) = stats.get_mut(&addr) {
             s.connected = false;
         }
     }
